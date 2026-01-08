@@ -6,7 +6,8 @@
 #define baseMotorEncoderA 39
 #define baseMotorEncoderB 40
 
-#define currectSensor 38
+#define currentSensor 38
+#define baseHallSensor 41
 
 Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
 
@@ -19,7 +20,8 @@ void setup() {
   pinMode(baseMotorPWM2, OUTPUT);
   pinMode(baseMotorEncoderA, INPUT);
   pinMode(baseMotorEncoderB, INPUT);
-  pinMode(currectSensor, INPUT);
+  pinMode(currentSensor, INPUT);
+  pinMode(baseHallSensor, INPUT);
 
   Serial.begin(9600);
   Serial.println("Basic Encoder Test:");
@@ -28,30 +30,31 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  for(int i=0; i<100; i++)
+  for(int i=0; i<500; i++)
   {
-    analogWrite(baseMotorPWM1, 20);
+    analogWrite(baseMotorPWM1, 40);
     analogWrite(baseMotorPWM2, 0);
     delay(5);
 
     long newPosition = baseEnc.read();
     if (newPosition != oldPosition) {
       oldPosition = newPosition;
-      Serial.println(newPosition);
+      //Serial.println(newPosition);
+      Serial.println(analogRead(baseHallSensor));
     }
   }
 
-
-  for(int i=0; i<100; i++)
+  for(int i=0; i<500; i++)
   {
     analogWrite(baseMotorPWM1, 0);
-    analogWrite(baseMotorPWM2, 20);
+    analogWrite(baseMotorPWM2, 40);
     delay(5);
 
     long newPosition = baseEnc.read();
     if (newPosition != oldPosition) {
       oldPosition = newPosition;
-      Serial.println(newPosition);
+      //Serial.println(newPosition);
+      Serial.println(analogRead(baseHallSensor));
     }
   }
 }
