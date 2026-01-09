@@ -25,7 +25,7 @@ void setup() {
   pinMode(baseMotorEncoderA, INPUT);
   pinMode(baseMotorEncoderB, INPUT);
   pinMode(currentSensor, INPUT);
-  pinMode(baseHallSensor, INPUT);
+  pinMode(baseHallSensor, INPUT_PULLUP);
 
   Serial.begin(9600);
   Serial.println("Basic Encoder Test:");
@@ -45,9 +45,18 @@ void loop() {
   // put your main code here, to run repeatedly:
   UART_data = readUART();
   if (UART_data == "") {
+    int baseHallState = digitalRead(baseHallSensor);
+    printf("Base Hall Sensor State: %d\n", baseHallState);
+    delay(50);
     return;
   }
   printf("Received: '%s'\n", UART_data.c_str());
+
+  if (UART_data == "STOP") {
+    printf("Stop\n");
+    analogWrite(baseMotorPWM1, 0);
+    analogWrite(baseMotorPWM2, 0);
+  }
 
   if (UART_data == "J1_PLUS") {
     printf("Moving J1 +\n");
