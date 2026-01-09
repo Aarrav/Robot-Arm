@@ -62,30 +62,28 @@ void loop() {
       analogWrite(shoulderMotorPWM2, 0);
     }
 
-    if (UART_data == "J1_PLUS") {
-      printf("Moving J1 +\n");
+    if (UART_data == "BaseCW") {
+      printf("Moving Base Clockwise\n");
       analogWrite(baseMotorPWM1, 0);
       analogWrite(baseMotorPWM2, 20);
     }
 
-    if (UART_data == "J1_MINUS") {
-      printf("Moving J1 -\n");
+    if (UART_data == "BaseCCW") {
+      printf("Moving Base Counterclockwise\n");
       analogWrite(baseMotorPWM1, 20);
       analogWrite(baseMotorPWM2, 0);
     }
 
-      if (UART_data == "J2_PLUS") {
-      printf("Moving J2 +\n");
+      if (UART_data == "ShoulderUp") {
+      printf("Moving Shoulder Up\n");
       analogWrite(shoulderMotorPWM1, 20);
       analogWrite(shoulderMotorPWM2, 0);
     }
 
-    if (UART_data == "J2_MINUS") {
-      printf("Moving J2 -\n");
+    if (UART_data == "ShoulderDown") {
+      printf("Moving Shoulder Down\n");
       analogWrite(shoulderMotorPWM1, 0);
       analogWrite(shoulderMotorPWM2, 15);
     }
   }
 }
-
-
