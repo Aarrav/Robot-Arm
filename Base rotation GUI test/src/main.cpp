@@ -12,10 +12,14 @@
 Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
 
 long oldPosition  = -999;
+String UART_data = "";
 
 
 void setup() {
   // put your setup code here, to run once:
+  Serial7.begin(9600);
+  Serial7.setTimeout(100);
+
   pinMode(baseMotorPWM1, OUTPUT);
   pinMode(baseMotorPWM2, OUTPUT);
   pinMode(baseMotorEncoderA, INPUT);
@@ -27,34 +31,33 @@ void setup() {
   Serial.println("Basic Encoder Test:");
 }
 
+String readUART() {
+  if (Serial7.available() > 0) {
+    String result = Serial7.readStringUntil('\n');
+    result.trim();
+    return result;
+  }
+  return "";
+}
+
+
 void loop() {
   // put your main code here, to run repeatedly:
+  UART_data = readUART();
+  if (UART_data == "") {
+    return;
+  }
+  printf("Received: '%s'\n", UART_data.c_str());
 
-  for(int i=0; i<500; i++)
-  {
-    analogWrite(baseMotorPWM1, 40);
-    analogWrite(baseMotorPWM2, 0);
-    delay(5);
-
-    long newPosition = baseEnc.read();
-    if (newPosition != oldPosition) {
-      oldPosition = newPosition;
-      //Serial.println(newPosition);
-      Serial.println(analogRead(baseHallSensor));
-    }
+  if (UART_data == "J1_PLUS") {
+    printf("Moving J1 +\n");
+    analogWrite(baseMotorPWM1, 0);
+    analogWrite(baseMotorPWM2, 20);
   }
 
-  for(int i=0; i<500; i++)
-  {
-    analogWrite(baseMotorPWM1, 0);
-    analogWrite(baseMotorPWM2, 40);
-    delay(5);
-
-    long newPosition = baseEnc.read();
-    if (newPosition != oldPosition) {
-      oldPosition = newPosition;
-      //Serial.println(newPosition);
-      Serial.println(analogRead(baseHallSensor));
-    }
+  if (UART_data == "J1_MINUS") {
+    printf("Moving J1 -\n");
+    analogWrite(baseMotorPWM1, 20);
+    analogWrite(baseMotorPWM2, 0);
   }
 }

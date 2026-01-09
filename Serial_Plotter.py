@@ -10,6 +10,7 @@ print("Python is running")
 while True:
     line = ser.readline().decode().strip()
     print(line)
+    '''
     try:
         value = float(line)
         y.append(value)
@@ -19,3 +20,4 @@ while True:
         plt.pause(0.01)
     except:
         pass
+        '''
