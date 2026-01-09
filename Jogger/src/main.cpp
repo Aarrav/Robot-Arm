@@ -6,9 +6,16 @@
 #define baseMotorEncoderA 39
 #define baseMotorEncoderB 40
 
-Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
+#define shoulderMotorPWM1 11
+#define shoulderMotorPWM2 12
+#define shoulderMotorEncoderA 23
+#define shoulderMotorEncoderB 24
 
-long oldPosition  = -999;
+Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
+Encoder shoulderEnc(shoulderMotorEncoderA, shoulderMotorEncoderB);
+
+long oldPositionBase  = -999;
+long oldPositionShoulder  = -999;
 String UART_data = "";
 
 void setup() {
@@ -19,6 +26,11 @@ void setup() {
   pinMode(baseMotorPWM2, OUTPUT);
   pinMode(baseMotorEncoderA, INPUT);
   pinMode(baseMotorEncoderB, INPUT);
+
+  pinMode(shoulderMotorPWM1, OUTPUT);
+  pinMode(shoulderMotorPWM2, OUTPUT);
+  pinMode(shoulderMotorEncoderA, INPUT);
+  pinMode(shoulderMotorEncoderB, INPUT);
 
   Serial.begin(9600);
   Serial.println("Jogger:");
@@ -46,6 +58,8 @@ void loop() {
       printf("Stop\n");
       analogWrite(baseMotorPWM1, 0);
       analogWrite(baseMotorPWM2, 0);
+      analogWrite(shoulderMotorPWM1, 0);
+      analogWrite(shoulderMotorPWM2, 0);
     }
 
     if (UART_data == "J1_PLUS") {
@@ -58,6 +72,18 @@ void loop() {
       printf("Moving J1 -\n");
       analogWrite(baseMotorPWM1, 20);
       analogWrite(baseMotorPWM2, 0);
+    }
+
+      if (UART_data == "J2_PLUS") {
+      printf("Moving J2 +\n");
+      analogWrite(shoulderMotorPWM1, 20);
+      analogWrite(shoulderMotorPWM2, 0);
+    }
+
+    if (UART_data == "J2_MINUS") {
+      printf("Moving J2 -\n");
+      analogWrite(shoulderMotorPWM1, 0);
+      analogWrite(shoulderMotorPWM2, 15);
     }
   }
 }
