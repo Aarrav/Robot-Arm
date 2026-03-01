@@ -85,5 +85,11 @@ void loop() {
       analogWrite(shoulderMotorPWM1, 0);
       analogWrite(shoulderMotorPWM2, 15);
     }
+
+    long newPositionBase = baseEnc.read();
+    if (newPositionBase != oldPositionBase) {
+      printf("Degrees: %ld\n", newPositionBase);
+      oldPositionBase = newPositionBase;  
+    }
   }
 }
