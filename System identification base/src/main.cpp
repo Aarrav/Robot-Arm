@@ -44,15 +44,16 @@ void loop() {
 
   // Velocity update every 10ms
   static unsigned long lastUpdate = 0;
-  if (micros() - lastUpdate >= 100000) {
+  if (micros() - lastUpdate >= 15000) { // 10ms = 10000 microseconds
 
     long newPositionBase = baseEnc.read();
     unsigned long newTimeBase = micros();
 
     float deltaCounts = newPositionBase - oldPositionBase;
-    float deltaTime = (newTimeBase - oldTimeBase) / 100000.0;
+    float deltaTime = newTimeBase - oldTimeBase;
+    deltaTime /= 1000000.0; // Convert microseconds to seconds
 
-    float positionDeg = (newPositionBase / countsPerRot) * 360.0;
+    float positionDeg = (newPositionBase / (float)countsPerRot) * 360.0;
     float velocityDeg = (deltaCounts / countsPerRot) * 360.0 / deltaTime;
 
     // Serial.print("Position: ");
@@ -63,10 +64,23 @@ void loop() {
 
     Serial.print(newPositionBase);
     Serial.print(" , ");
-    Serial.println(oldPositionBase);
+    Serial.print(oldPositionBase);
+    Serial.print(" , ");
+    Serial.print(newTimeBase);
+    Serial.print(" , ");    
+    Serial.print(oldTimeBase);
+    Serial.print(" , ");
+    Serial.print(deltaCounts, 6);
+    Serial.print(" , ");
+    Serial.print(deltaTime, 6);
+    Serial.print(" , ");
+    Serial.print(positionDeg, 6);
+    Serial.print(" , ");
+    Serial.print(velocityDeg, 6);
+    Serial.println();
 
     oldPositionBase = newPositionBase;
     oldTimeBase = newTimeBase;
-    lastUpdate = millis();
+    lastUpdate = micros();
   }
 }
