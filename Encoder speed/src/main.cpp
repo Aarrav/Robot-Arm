@@ -39,9 +39,9 @@ void setup() {
 
 void loop() {
 
-  if (millis() - startTime < 1000) {
-    analogWrite(baseMotorPWM1, 0);
-    analogWrite(baseMotorPWM2, 100);
+  if (millis() - startTime < 3000) {
+    analogWrite(baseMotorPWM1, 100);
+    analogWrite(baseMotorPWM2, 0);
   } else {
     analogWrite(baseMotorPWM1, 0);
     analogWrite(baseMotorPWM2, 0);
