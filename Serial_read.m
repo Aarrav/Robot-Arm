@@ -23,7 +23,7 @@ grid on;
 xlabel('Time (ms)');
 ylabel('Velocity (deg/s)');
 title('Velocity vs Time');
-ylim([0 20]); % Adjust as needed
+ylim([0 70]); % Adjust as needed
 
 % -- Animation Loop --
 disp("Acquiring data... Close figure to stop.");

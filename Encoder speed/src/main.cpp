@@ -10,6 +10,11 @@ Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
 
 long oldPositionBase;
 unsigned long oldTimeBase, startTime;
+unsigned long timePrint;
+float alpha = 0.2;
+float filteredVelocity = 0;
+float velocityDeg, oldVelocityDeg;
+static int staleCounter = 0;
 
 // Driving gear = 20 teeth
 // Driven gear = 30 teeth
@@ -36,13 +41,14 @@ void loop() {
 
   if (millis() - startTime < 1000) {
     analogWrite(baseMotorPWM1, 0);
-    analogWrite(baseMotorPWM2, 20);
+    analogWrite(baseMotorPWM2, 100);
   } else {
     analogWrite(baseMotorPWM1, 0);
     analogWrite(baseMotorPWM2, 0);
   }
 
   // Velocity update every 10ms
+  /*
   static unsigned long lastUpdate = 0;
   if (micros() - lastUpdate >= 10000) { // 10ms = 10000 microseconds
 
@@ -54,33 +60,49 @@ void loop() {
     deltaTime /= 1000000.0; // Convert microseconds to seconds
 
     float positionDeg = (newPositionBase / (float)countsPerRot) * 360.0;
-    float velocityDeg = (deltaCounts / countsPerRot) * 360.0 / deltaTime;
+    float rawVelocity = (deltaCounts / (float)countsPerRot) * 360.0 / deltaTime;
+    filteredVelocity = (alpha * rawVelocity) + ((1 - alpha) * filteredVelocity);
 
-    // Serial.print("Position: ");
-    // Serial.print(positionDeg);
-    // Serial.print(" deg | Velocity: ");
-    // Serial.print(velocityDeg);
-    // Serial.println(" deg/s");
-
-    // Serial.print(newPositionBase);
-    // Serial.print(" , ");
-    // Serial.print(oldPositionBase);
-    // Serial.print(" , ");
-    // Serial.print(newTimeBase);
-    // Serial.print(" , ");    
-    // Serial.print(oldTimeBase);
-    // Serial.print(" , ");
-    // Serial.print(deltaCounts, 6);
-    // Serial.print(" , ");
-    // Serial.print(deltaTime, 6);
-    // Serial.print(" , ");
-    // Serial.print(positionDeg, 6);
-    // Serial.print(" , ");
-    Serial.print(velocityDeg, 6);
+    Serial.print(filteredVelocity, 6);
     Serial.println();
 
     oldPositionBase = newPositionBase;
     oldTimeBase = newTimeBase;
     lastUpdate = micros();
   }
+  */
+
+  long newPositionBase = baseEnc.read();
+  unsigned long newTimeBase = micros();
+
+  if(newPositionBase != oldPositionBase) {
+    float deltaCounts = newPositionBase - oldPositionBase;
+    float deltaTime = newTimeBase - oldTimeBase;
+    deltaTime /= 1000000.0; // Convert microseconds to seconds
+
+    float positionDeg = (newPositionBase / (float)countsPerRot) * 360.0;
+    velocityDeg = (deltaCounts / countsPerRot) * 360.0 / deltaTime;
+
+    oldPositionBase = newPositionBase;
+    oldTimeBase = newTimeBase;
+  }
+
+  if(micros() - timePrint >= 10000) { // Print every 10ms
+
+    if (velocityDeg == oldVelocityDeg) {
+      staleCounter++;
+    }else {
+      staleCounter = 0; // Reset counter if velocity changes
+      oldVelocityDeg = velocityDeg;
+    }
+
+    if (staleCounter >= 3) {
+      velocityDeg = 0; // Consider it as zero if it hasn't changed for a while
+    }
+
+    Serial.print(velocityDeg, 6);
+    Serial.println();
+    timePrint = micros();
+  }
+
 }
