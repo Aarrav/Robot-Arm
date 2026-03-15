@@ -4,8 +4,8 @@ clear; clc; close all;
 % -- Configuration --
 port = "/dev/tty.usbmodem178375201";          % <--- Change this to your Teensy COM port
 baudrate = 9600;      
-sampleIntervalMs = 10;  % Your 10ms loop
-windowSize = 200;       % Number of points shown on screen
+sampleIntervalMs = 2;  % Your 10ms loop
+windowSize = 4000;       % Number of points shown on screen
 
 % Create the time vector (0, 10, 20, ..., up to window size)
 timeLog = (0:windowSize-1) * sampleIntervalMs;
@@ -23,7 +23,7 @@ grid on;
 xlabel('Time (ms)');
 ylabel('Velocity (deg/s)');
 title('Velocity vs Time');
-ylim([0 70]); % Adjust as needed
+ylim([-80 80]); % Adjust as needed
 
 % -- Animation Loop --
 disp("Acquiring data... Close figure to stop.");

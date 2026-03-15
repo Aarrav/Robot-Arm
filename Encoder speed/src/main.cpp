@@ -11,7 +11,7 @@ Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
 long oldPositionBase;
 unsigned long oldTimeBase, startTime;
 unsigned long timePrint;
-float alpha = 0.2;
+float alpha = 0.08;
 float filteredVelocity = 0;
 float velocityDeg, oldVelocityDeg;
 static int staleCounter = 0;
@@ -39,18 +39,27 @@ void setup() {
 
 void loop() {
 
-  if (millis() - startTime < 3000) {
-    analogWrite(baseMotorPWM1, 100);
+  if (millis() - startTime < 1000) {
+    analogWrite(baseMotorPWM1, 120);
     analogWrite(baseMotorPWM2, 0);
+  } else if (millis() - startTime < 2000) {
+    analogWrite(baseMotorPWM1, 0);
+    analogWrite(baseMotorPWM2, 80); 
+  } else if (millis() - startTime < 3000) {
+    analogWrite(baseMotorPWM1, 60);
+    analogWrite(baseMotorPWM2, 0);
+  } else if (millis() - startTime < 4000) {
+    analogWrite(baseMotorPWM1, 0);
+    analogWrite(baseMotorPWM2, 40); 
   } else {
     analogWrite(baseMotorPWM1, 0);
     analogWrite(baseMotorPWM2, 0);
   }
 
   // Velocity update every 10ms
-  /*
+  
   static unsigned long lastUpdate = 0;
-  if (micros() - lastUpdate >= 10000) { // 10ms = 10000 microseconds
+  if (micros() - lastUpdate >= 2000) { // 10ms = 10000 microseconds
 
     long newPositionBase = baseEnc.read();
     unsigned long newTimeBase = micros();
@@ -70,7 +79,9 @@ void loop() {
     oldTimeBase = newTimeBase;
     lastUpdate = micros();
   }
-  */
+}
+
+  /*
 
   long newPositionBase = baseEnc.read();
   unsigned long newTimeBase = micros();
@@ -106,3 +117,4 @@ void loop() {
   }
 
 }
+  */
