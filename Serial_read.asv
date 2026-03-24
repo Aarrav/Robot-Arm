@@ -155,7 +155,7 @@ clear; clc; close all;
 % -- Configuration --
 port = "/dev/ttyACM0";        % Double-check this with serialportlist("available")
 baudrate = 9600;      
-windowSize = 200;             % Points shown on screen
+windowSize = 1000;             % Points shown on screen
 sampleIntervalMs = 5; 
 
 % -- Data Buffers --
@@ -182,7 +182,7 @@ xlabel('Time (ms)');
 ylabel('Degrees / Degrees per Second');
 title('Motor Trajectory Tracking');
 legend('Location', 'northwest');
-ylim([-10 120]); % Adjust based on your trajectory bounds
+ylim([-30 60]); % Adjust based on your trajectory bounds
 
 % -- Animation Loop --
 disp("Acquiring data... Close figure to stop.");
