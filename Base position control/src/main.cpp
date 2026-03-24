@@ -7,7 +7,7 @@
 Encoder baseEnc(baseMotorEncoderA, baseMotorEncoderB);
 
 unsigned long startTime;
-float targetPosition = 20.0;
+float targetPosition = -20.0;
 
 void setup() {
     pinMode(baseMotorPWM1, OUTPUT);
