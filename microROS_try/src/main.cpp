@@ -3,50 +3,145 @@
 #include <rcl/rcl.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-#include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/float32.h>
 
-rcl_publisher_t publisher;
-std_msgs__msg__Int32 msg;
-rclc_executor_t executor;
-rclc_support_t support;
-rcl_allocator_t allocator;
-rcl_node_t node;
-rcl_timer_t timer;
-
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){while(1){digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); delay(100);}}}
-#define RCSOFTCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){}}
-
-void timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
-  RCLC_UNUSED(last_call_time);
-  if (timer != NULL) {
-    RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
-    msg.data++;
+void error_loop(int blinks) {
+  while(1) {
+    for(int i = 0; i < blinks; i++) {
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(300);
+      digitalWrite(LED_BUILTIN, LOW);
+      delay(300);
+    }
+    delay(1500);
   }
 }
 
-void setup() {
-  set_microros_transports();  // uses USB serial by default
+#define RCCHECK(fn, code) { rcl_ret_t rc = fn; if(rc != RCL_RET_OK){ error_loop(code); }}
+#define RCSOFTCHECK(fn) { rcl_ret_t rc = fn; (void)rc; }
 
+HardwareSerial* uart_port = &Serial7;
+
+bool uart_open(struct uxrCustomTransport* transport) {
+  uart_port->begin(115200);
+  return true;
+}
+bool uart_close(struct uxrCustomTransport* transport) {
+  uart_port->end();
+  return true;
+}
+size_t uart_write(struct uxrCustomTransport* transport, const uint8_t* buf, size_t len, uint8_t* err) {
+  return uart_port->write(buf, len);
+}
+size_t uart_read(struct uxrCustomTransport* transport, uint8_t* buf, size_t len, int timeout, uint8_t* err) {
+  unsigned long start = millis();
+  size_t received = 0;
+  while (received < len && (millis() - start) < (unsigned long)timeout) {
+    if (uart_port->available()) {
+      buf[received++] = uart_port->read();
+    }
+  }
+  return received;
+}
+
+rclc_support_t support;
+rcl_allocator_t allocator;
+rcl_node_t node;
+rclc_executor_t executor;
+rcl_publisher_t sensor_publisher;
+std_msgs__msg__Float32 sensor_msg;
+rcl_timer_t timer;
+rcl_subscription_t cmd_subscriber;
+std_msgs__msg__Float32 cmd_msg;
+
+void timer_callback(rcl_timer_t* timer, int64_t last_call_time) {
+  RCLC_UNUSED(last_call_time);
+  if (timer != NULL) {
+    sensor_msg.data = (float)analogRead(A0) * (3.3f / 1023.0f);
+    RCSOFTCHECK(rcl_publish(&sensor_publisher, &sensor_msg, NULL));
+  }
+}
+
+void cmd_callback(const void* msg_in) {
+  const std_msgs__msg__Float32* msg = (const std_msgs__msg__Float32*)msg_in;
+  digitalWrite(LED_BUILTIN, msg->data > 0 ? HIGH : LOW);
+}
+
+void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
+  digitalWrite(LED_BUILTIN, LOW);
+
+  rmw_uros_set_custom_transport(true, NULL, uart_open, uart_close, uart_write, uart_read);
+
+  while (RMW_RET_OK != rmw_uros_ping_agent(1000, 10)) {
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    delay(100);
+  }
+  digitalWrite(LED_BUILTIN, HIGH); // agent found
   delay(2000);
 
   allocator = rcl_get_default_allocator();
-  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "teensy_node", "", &support));
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator), 1);
+  RCCHECK(rclc_node_init_default(&node, "teensy_arm_node", "", &support), 2);
   RCCHECK(rclc_publisher_init_default(
-    &publisher,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
-    "teensy_topic"));
+    &sensor_publisher, &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+    "arm/sensor"), 3);
+  RCCHECK(rclc_subscription_init_default(
+    &cmd_subscriber, &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+    "arm/cmd"), 4);
+  RCCHECK(rclc_timer_init_default(
+    &timer, &support, RCL_MS_TO_NS(100), timer_callback), 5);
+  RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator), 6);
+  RCCHECK(rclc_executor_add_timer(&executor, &timer), 7);
+  RCCHECK(rclc_executor_add_subscription(
+    &executor, &cmd_subscriber, &cmd_msg, &cmd_callback, ON_NEW_DATA), 8);
 
-  RCCHECK(rclc_timer_init_default(&timer, &support, RCL_MS_TO_NS(1000), timer_callback));
-  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-  RCCHECK(rclc_executor_add_timer(&executor, &timer));
-
-  msg.data = 0;
+  digitalWrite(LED_BUILTIN, HIGH);
 }
 
 void loop() {
-  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+  if (RMW_RET_OK == rmw_uros_ping_agent(100, 1)) {
+    rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100));
+    digitalWrite(LED_BUILTIN, HIGH);
+    
+  } else {
+    // Lost connection — restart
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+    // Reinitialize
+    rcl_publisher_fini(&sensor_publisher, &node);
+    rcl_subscription_fini(&cmd_subscriber, &node);
+    rcl_timer_fini(&timer);
+    rcl_node_fini(&node);
+    rclc_support_fini(&support);
+
+    // Wait for agent to come back
+    while (RMW_RET_OK != rmw_uros_ping_agent(1000, 10)) {
+      digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+      delay(100);
+    }
+
+    // Reinit everything
+    allocator = rcl_get_default_allocator();
+    RCCHECK(rclc_support_init(&support, 0, NULL, &allocator), 1);
+    RCCHECK(rclc_node_init_default(&node, "teensy_arm_node", "", &support), 2);
+    RCCHECK(rclc_publisher_init_default(
+      &sensor_publisher, &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+      "arm/sensor"), 3);
+    RCCHECK(rclc_subscription_init_default(
+      &cmd_subscriber, &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32),
+      "arm/cmd"), 4);
+    RCCHECK(rclc_timer_init_default(
+      &timer, &support, RCL_MS_TO_NS(100), timer_callback), 5);
+    RCCHECK(rclc_executor_init(&executor, &support.context, 2, &allocator), 6);
+    RCCHECK(rclc_executor_add_timer(&executor, &timer), 7);
+    RCCHECK(rclc_executor_add_subscription(
+      &executor, &cmd_subscriber, &cmd_msg, &cmd_callback, ON_NEW_DATA), 8);
+
+    digitalWrite(LED_BUILTIN, HIGH);
+  }
 }
