@@ -53,7 +53,7 @@ void printDebugInfo() {
 }
 
 void moveToPosition(float targetPosition) {
-    float Kp = 700.0;
+    float Kp = 200.0; //was 700
     float Kd = 50.0;
     float prevError = 0.0;
     const float maxPWM = 200.0;
