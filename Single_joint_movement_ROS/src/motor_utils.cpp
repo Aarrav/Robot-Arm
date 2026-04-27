@@ -16,7 +16,7 @@ void motorInit() {
 
 // ── Getters ──────────────────────────────────────────────────
 float getPositionDeg() {
-  return (baseEnc.read() / BASE_COUNTS_PER_ROT) * 360.0f;
+  return -(baseEnc.read() / BASE_COUNTS_PER_ROT) * 360.0f;
 }
 
 float getFilteredVelocity() {
