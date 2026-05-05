@@ -9,7 +9,6 @@
 #include "microros_transport.h"
 #include "trajectory.h"
 
-// ── UART port for micro-ROS ──────────────────────────────────
 HardwareSerial* uart_port = &Serial7;
 
 // ── Base joint state ─────────────────────────────────────────
@@ -30,6 +29,7 @@ rcl_allocator_t  allocator;
 rcl_node_t       node;
 rclc_executor_t  executor;
 
+// Subscribers
 rcl_subscription_t base_sub;
 std_msgs__msg__Float32MultiArray base_msg;
 static float base_data_buffer[2];
@@ -37,6 +37,11 @@ static float base_data_buffer[2];
 rcl_subscription_t shoulder_sub;
 std_msgs__msg__Float32MultiArray shoulder_msg;
 static float shoulder_data_buffer[2];
+
+// ── Publisher: joint states ───────────────────────────────────
+rcl_publisher_t  joint_state_pub;
+std_msgs__msg__Float32MultiArray joint_state_msg;
+static float joint_state_buffer[4];  // [base_pos, base_vel, shoulder_pos, shoulder_vel]
 
 // ── Callbacks ────────────────────────────────────────────────
 void base_callback(const void* msg_in) {
@@ -106,7 +111,15 @@ void initMicroROS() {
     ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32MultiArray),
     "/shoulder/move");
 
-  // Executor — must init BEFORE adding subscriptions
+  // Joint state publisher
+  joint_state_msg.data.data     = joint_state_buffer;
+  joint_state_msg.data.size     = 4;
+  joint_state_msg.data.capacity = 4;
+  rclc_publisher_init_default(&joint_state_pub, &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Float32MultiArray),
+    "/arm/joint_states");
+
+  // Executor — 2 subscribers (no timers, we publish manually)
   rclc_executor_init(&executor, &support.context, 2, &allocator);
   rclc_executor_add_subscription(&executor, &base_sub,
     &base_msg, &base_callback, ON_NEW_DATA);
@@ -121,7 +134,6 @@ void setup() {
   motorInit();
   initMicroROS();
 
-  // Initialise trajectory start positions
   baseStartPos     = getBasePositionDeg();
   shoulderStartPos = getShoulderPositionDeg();
   baseStartMs      = millis();
@@ -133,8 +145,9 @@ void setup() {
 // ── Loop ─────────────────────────────────────────────────────
 void loop() {
   unsigned long nowUs = micros();
-  static unsigned long lastControlUs = 0;
-  static unsigned long lastRosUs     = 0;
+  static unsigned long lastControlUs  = 0;
+  static unsigned long lastRosUs      = 0;
+  static unsigned long lastPublishUs  = 0;
 
   // 500us control loop
   if (nowUs - lastControlUs >= 500) {
@@ -155,9 +168,17 @@ void loop() {
     printDebugInfo(baseTarget, shoulderTarget);
   }
 
-  // 10ms micro-ROS check
+  // 10ms micro-ROS spin + publish joint states
   if (nowUs - lastRosUs >= 10000) {
     lastRosUs = nowUs;
+
+    // Pack joint states: [base_pos, base_vel, shoulder_pos, shoulder_vel]
+    joint_state_buffer[0] = getBasePositionDeg();
+    joint_state_buffer[1] = getBaseFilteredVelocity();
+    joint_state_buffer[2] = getShoulderPositionDeg();
+    joint_state_buffer[3] = getShoulderFilteredVelocity();
+    rcl_publish(&joint_state_pub, &joint_state_msg, NULL);
+
     rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1));
   }
 }
