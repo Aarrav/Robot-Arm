@@ -1,4 +1,4 @@
-# 5-DOF Robot Arm Control System (5XEB0)
+# 5-DOF Robot Arm Control System
 
 An academic and research-oriented repository demonstrating real-time control, system identification, and ROS 2 integration for a custom 5-Degree-of-Freedom (5-DOF) robotic manipulator. 
 
